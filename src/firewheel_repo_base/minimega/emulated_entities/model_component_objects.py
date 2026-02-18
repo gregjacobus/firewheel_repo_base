@@ -311,6 +311,22 @@ class MinimegaEmulatedVM:
             self.log.debug("new qga path is %s", qga_config["path"])
             config["aux"]["qga_config"] = qga_config
             return qga_config
+
+        elif minimega_type == "AVD":
+            adb_config = {
+                "port": config["aux"]["qemu_append"]["port"],
+                # TODO do we even need this, or should we make a conditional for this? I don't think it'll be used...
+                "path": os.path.join(
+                    fw_config["minimega"]["base_dir"],
+                    "namespaces",
+                    fw_config["minimega"]["namespace"],
+                    self.uuid,
+                    "virtio-serial0",
+                ),
+            }
+            config["aux"]["adb_config"] = adb_config
+            return adb_config
+
         return {}
 
     def _generate_vm_resource_handler_process_config(self, config):
@@ -345,6 +361,15 @@ class MinimegaEmulatedVM:
                 process_config["path"] = config["aux"]["qga_config"]["path"]
 
             if "path" not in process_config:
+                return None
+
+        if config["vm"]["type"] == "AVD":
+            if "adb_config" in config["aux"] and config["aux"]["adb_config"]:
+                process_config["path"] = config["aux"]["adb_config"]["path"]
+                process_config["adb_port"] = config["aux"]["adb_config"]["port"]
+            
+
+            if "path" not in process_config or "adb_port" not in process_config:
                 return None
 
         config["aux"]["handler_process"] = process_config
@@ -396,10 +421,11 @@ class MinimegaEmulatedVM:
 
         config = {}
         config["aux"] = {}
+        config["aux"]["qemu"] = self.vm.get("qemu")
         config["aux"]["qemu_append"] = self.vm.get("qemu_append", {})
         config["vm"] = {}
         config["vm"]["uuid"] = self.uuid
-        config["vm"]["type"] = "QemuVM"
+        config["vm"]["type"] = self.vm.get("vm_type", "QemuVM")
         config["coschedule"] = self.coschedule
         self.log.debug('VM "%s" has UUID %s.', self.name, self.uuid)
 
@@ -462,7 +488,7 @@ class MinimegaEmulatedVM:
         except AttributeError:
             config["tags"] = {}
 
-        if config["aux"]["qga_config"]:
+        if "qga_config" in config["aux"] or "adb_config" in config["aux"]:
             self._generate_vm_resource_handler_process_config(config)
 
         return config

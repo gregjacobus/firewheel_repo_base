@@ -87,6 +87,8 @@ class Plugin(AbstractPlugin):
             data[tag_key] = tag_value
 
         # Add any other QEMU options here.
+        if "qemu" in vme_conf["aux"]:
+            data["qemu"] = vme_conf["aux"]["qemu"]
         data["qemu_append"] = vme_conf["aux"]["qemu_append_str"]
 
         # If there's any coscheduling parameters, propagate them
@@ -303,7 +305,12 @@ class Plugin(AbstractPlugin):
             vm_map[vm_name] = vm["hostname"]
 
         def update_socket_path(process_config):
-            original_socket_path = process_config["path"]
+            try:
+                original_socket_path = process_config["path"]
+            except KeyError:
+                # Might not be a QemuVM, ignore this
+                # TODO FIXME better way to handle this?
+                return
             socket_filename = os.path.basename(original_socket_path)
             mm_id = core_vms[process_config["vm_name"]]["id"]
             full_socket_path = os.path.join(mm_api.mm_base, mm_id, socket_filename)
