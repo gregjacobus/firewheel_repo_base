@@ -315,7 +315,6 @@ class MinimegaEmulatedVM:
         elif minimega_type == "AVD":
             adb_config = {
                 "port": config["aux"]["qemu_append"]["port"],
-                # TODO do we even need this, or should we make a conditional for this? I don't think it'll be used...
                 "path": os.path.join(
                     fw_config["minimega"]["base_dir"],
                     "namespaces",
