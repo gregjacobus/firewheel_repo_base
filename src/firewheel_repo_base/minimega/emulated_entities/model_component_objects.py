@@ -296,7 +296,13 @@ class MinimegaEmulatedVM:
             return {}
 
         # Handle vm_resource communication devices based off VM type
-        virtio_serial_path = os.path.join(fw_config["minimega"]["base_dir"], "namespaces", fw_config["minimega"]["namespace"], self.uuid, "virtio-serial0")
+        virtio_serial_path = os.path.join(
+            fw_config["minimega"]["base_dir"],
+            "namespaces",
+            fw_config["minimega"]["namespace"],
+            self.uuid,
+            "virtio-serial0",
+        )
         if minimega_type == "QemuVM":
             qga_config = {
                 "name": "serial",
@@ -355,7 +361,6 @@ class MinimegaEmulatedVM:
             if "adb_config" in config["aux"] and config["aux"]["adb_config"]:
                 process_config["path"] = config["aux"]["adb_config"]["path"]
                 process_config["adb_port"] = config["aux"]["adb_config"]["port"]
-            
 
             if "path" not in process_config or "adb_port" not in process_config:
                 return None
