@@ -305,12 +305,7 @@ class Plugin(AbstractPlugin):
             vm_map[vm_name] = vm["hostname"]
 
         def update_socket_path(process_config):
-            try:
-                original_socket_path = process_config["path"]
-            except KeyError:
-                # Might not be a QemuVM, ignore this
-                # TODO FIXME better way to handle this?
-                return
+            original_socket_path = process_config["path"]
             socket_filename = os.path.basename(original_socket_path)
             mm_id = core_vms[process_config["vm_name"]]["id"]
             full_socket_path = os.path.join(mm_api.mm_base, mm_id, socket_filename)
