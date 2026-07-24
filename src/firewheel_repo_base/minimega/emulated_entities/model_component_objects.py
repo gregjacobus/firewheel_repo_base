@@ -278,46 +278,69 @@ class MinimegaEmulatedVM:
         config["vm"]["vga_model"] = self.vm["vga"]
 
     def _generate_vm_resource_handler_communication_config(self, config, minimega_type):
-        """Create the finished configuration which will be used to enable communication
-        between the :ref:`vm-resource-handler` and the VM.
+        """Create the configuration used by the VM Resource Handler to communicate
+        with the VM.
 
         Args:
             config (dict): The configuration for the VM.
-            minimega_type (str): The type of the VM. Currently, there is only one type ``QemuVM``.
+            minimega_type (str): The VM type, e.g. ``QemuVM`` or ``AVD``.
 
         Returns:
-            dict: The ``qga_config`` dictionary.
+            dict: Driver communication configuration.
         """
-        # First check that the VM needs resource handler communication
         try:
             if not self.vm_resource_schedule:
                 return {}
         except AttributeError:
             return {}
 
-        # Handle vm_resource communication devices based off VM type
-        virtio_serial_path = os.path.join(
-            fw_config["minimega"]["base_dir"],
-            "namespaces",
-            fw_config["minimega"]["namespace"],
-            self.uuid,
-            "virtio-serial0",
-        )
         if minimega_type == "QemuVM":
+            virtio_serial_path = os.path.join(
+                fw_config["minimega"]["base_dir"],
+                "namespaces",
+                fw_config["minimega"]["namespace"],
+                self.uuid,
+                "virtio-serial0",
+            )
+
             qga_config = {
                 "name": "serial",
                 "id": "minimegaqga",
                 "path": virtio_serial_path,
             }
+
             self.log.debug("new qga path is %s", qga_config["path"])
             config["aux"]["qga_config"] = qga_config
             return qga_config
 
-        elif minimega_type == "AVD":
+        if minimega_type == "AVD":
+            adb_options = self.vm.get("adb", {})
+
+            try:
+                adb_port = adb_options["adb_port"]
+            except KeyError as exc:
+                raise RuntimeError(
+                    f'AVD VM "{self.name}" requires vm["adb"]["adb_port"] so the '
+                    "VM Resource Handler can identify the Android emulator."
+                ) from exc
+
+            adb_serial = adb_options.get("adb_serial", f"emulator-{adb_port}")
+            require_root = adb_options.get("require_root", True)
+
             adb_config = {
-                "port": config["aux"]["qemu_append"]["port"],
-                "path": virtio_serial_path,
+                "adb_port": adb_port,
+                "adb_serial": adb_serial,
+                "require_root": require_root,
             }
+
+            self.log.debug(
+                'AVD VM "%s" using adb_port=%s adb_serial=%s require_root=%s',
+                self.name,
+                adb_port,
+                adb_serial,
+                require_root,
+            )
+
             config["aux"]["adb_config"] = adb_config
             return adb_config
 
@@ -325,15 +348,14 @@ class MinimegaEmulatedVM:
 
     def _generate_vm_resource_handler_process_config(self, config):
         """
-        Create a configuration for launching a :ref:`vm-resource-handler` process
-        for each VM. This method assumes that FIREWHEEL has been installed in the same
-        location on all :ref:`cluster-compute-nodes`.
+        Create a configuration for launching a VM Resource Handler process for each VM.
 
         Args:
             config (dict): The configuration for the VM.
 
         Returns:
-            dict: The configuration to launch a new :ref:`vm-resource-handler` process.
+            dict: The configuration to launch a new VM Resource Handler process,
+            or None if no handler should be launched.
         """
         try:
             if not self.vm_resource_schedule:
@@ -350,20 +372,31 @@ class MinimegaEmulatedVM:
             "binary_name": firewheel.vm_resource_manager.vm_resource_handler.__file__,
         }
 
-        if config["vm"]["type"] == "QemuVM":
-            if "qga_config" in config["aux"] and config["aux"]["qga_config"]:
-                process_config["path"] = config["aux"]["qga_config"]["path"]
+        driver_type = config["vm"]["type"]
 
-            if "path" not in process_config:
+        if driver_type == "QemuVM":
+            qga_config = config["aux"].get("qga_config")
+            if not qga_config:
                 return None
 
-        if config["vm"]["type"] == "AVD":
-            if "adb_config" in config["aux"] and config["aux"]["adb_config"]:
-                process_config["path"] = config["aux"]["adb_config"]["path"]
-                process_config["adb_port"] = config["aux"]["adb_config"]["port"]
+            process_config["path"] = qga_config["path"]
 
-            if "path" not in process_config or "adb_port" not in process_config:
+        elif driver_type == "AVD":
+            adb_config = config["aux"].get("adb_config")
+            if not adb_config:
                 return None
+
+            process_config["adb_port"] = adb_config["adb_port"]
+            process_config["adb_serial"] = adb_config["adb_serial"]
+            process_config["require_root"] = adb_config.get("require_root", True)
+
+        else:
+            self.log.debug(
+                'VM "%s" has unsupported VM Resource Handler driver type "%s".',
+                config["vm"]["name"],
+                driver_type,
+            )
+            return None
 
         config["aux"]["handler_process"] = process_config
         return process_config
