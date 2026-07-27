@@ -283,7 +283,7 @@ class MinimegaEmulatedVM:
 
         Args:
             config (dict): The configuration for the VM.
-            minimega_type (str): The VM type, e.g. ``QemuVM`` or ``AVD``.
+            minimega_type (str): The VM type, e.g. ``QemuVM`` or ``android``.
 
         Returns:
             dict: Driver communication configuration.
@@ -313,33 +313,35 @@ class MinimegaEmulatedVM:
             config["aux"]["qga_config"] = qga_config
             return qga_config
 
-        if minimega_type == "AVD":
+        if minimega_type == "android":
             adb_options = self.vm.get("adb", {})
+            android_options = self.vm.get("android", {})
 
-            try:
-                adb_port = adb_options["adb_port"]
-            except KeyError as exc:
-                raise RuntimeError(
-                    f'AVD VM "{self.name}" requires vm["adb"]["adb_port"] so the '
-                    "VM Resource Handler can identify the Android emulator."
-                ) from exc
+            android_console_port = adb_options.get(
+                "android_console_port",
+                android_options.get("android-console-base-port"),
+            )
 
-            adb_serial = adb_options.get("adb_serial", f"emulator-{adb_port}")
-            require_root = adb_options.get("require_root", True)
+            if android_console_port in (0, "0", ""):
+                android_console_port = None
 
             adb_config = {
-                "adb_port": adb_port,
-                "adb_serial": adb_serial,
-                "require_root": require_root,
+                "require_root": adb_options.get("require_root", True),
             }
 
-            self.log.debug(
-                'AVD VM "%s" using adb_port=%s adb_serial=%s require_root=%s',
-                self.name,
-                adb_port,
-                adb_serial,
-                require_root,
-            )
+            # Optional pre-launch hint. The plugin should overwrite this after
+            # minimega launch using actual android_serial from vm info.
+            if adb_options.get("adb_serial"):
+                adb_config["adb_serial"] = adb_options["adb_serial"]
+
+            # Optional requested/expected console port. The plugin should overwrite
+            # this after minimega launch using actual android_console_port.
+            if android_console_port is not None:
+                adb_config["android_console_port"] = android_console_port
+
+            # Optional; normally unknown until after minimega launch.
+            if "android_adb_port" in adb_options:
+                adb_config["android_adb_port"] = adb_options["android_adb_port"]
 
             config["aux"]["adb_config"] = adb_config
             return adb_config
@@ -365,7 +367,6 @@ class MinimegaEmulatedVM:
 
         process_config = {
             "type": "Process",
-            "engine": config["vm"]["type"],
             "uuid": str(uuid.uuid4()),
             "vm_name": config["vm"]["name"],
             "vm_uuid": config["vm"]["uuid"],
@@ -379,17 +380,28 @@ class MinimegaEmulatedVM:
             if not qga_config:
                 return None
 
+            process_config["engine"] = "QemuVM"
             process_config["path"] = qga_config["path"]
 
-        elif driver_type == "AVD":
+        elif driver_type == "android":
             adb_config = config["aux"].get("adb_config")
             if not adb_config:
                 return None
 
-            process_config["adb_port"] = adb_config["adb_port"]
-            process_config["adb_serial"] = adb_config["adb_serial"]
+            process_config["engine"] = "ADB"
+            process_config["vm_type"] = "android"
             process_config["require_root"] = adb_config.get("require_root", True)
 
+            if "adb_serial" in adb_config:
+                process_config["adb_serial"] = adb_config["adb_serial"]
+
+            if "android_console_port" in adb_config:
+                process_config["android_console_port"] = adb_config[
+                    "android_console_port"
+                ]
+
+            if "android_adb_port" in adb_config:
+                process_config["android_adb_port"] = adb_config["android_adb_port"]
         else:
             self.log.debug(
                 'VM "%s" has unsupported VM Resource Handler driver type "%s".',
@@ -452,6 +464,9 @@ class MinimegaEmulatedVM:
         config["vm"] = {}
         config["vm"]["uuid"] = self.uuid
         config["vm"]["type"] = self.vm.get("vm_type", "QemuVM")
+        is_android = config["vm"]["type"] == "android"
+        config["aux"]["android_config"] = self.vm.get("android", {})
+
         config["coschedule"] = self.coschedule
         self.log.debug('VM "%s" has UUID %s.', self.name, self.uuid)
 
@@ -469,19 +484,30 @@ class MinimegaEmulatedVM:
             self.log.critical("VM %s must define an architecture.", self.name)
             raise
         config["vm"]["name"] = self.name
-        config["vm"]["image"] = self.vm["image"]
+        
+        if is_android:
+            config["vm"]["image"] = self.vm.get("image", "")
+            config["aux"]["disks"] = []
+        else:
+            config["vm"]["image"] = self.vm["image"]
+    
 
         if "initial_power_state" in self.vm:
             config["aux"]["power_state"] = self.vm["initial_power_state"]
         else:
             config["aux"]["power_state"] = "running"
 
+        
         self._generate_nic_configs(config)
-        self._generate_bios_config(config)
-        self._generate_drive_configs(config)
+        if not is_android:
+            self._generate_bios_config(config)
+            self._generate_drive_configs(config)
+            self._generate_vga_config(config)
+        else:
+            config["vm"]["vga_model"] = self.vm.get("vga", "")
+    
         self._generate_vcpu_config(config)
         self._generate_mem_config(config)
-        self._generate_vga_config(config)
         self._generate_qemu_append_str(config)
         self._generate_vm_resource_handler_communication_config(
             config, config["vm"]["type"]
