@@ -436,6 +436,23 @@ class Plugin(AbstractPlugin):
                 break
 
         assert all_vms_launched
+        
+        errored_vms = {
+            name: vm
+            for name, vm in core_vms.items()
+            if vm.get("state") == "ERROR"
+        }
+
+        if errored_vms:
+            details = []
+            for name, vm in errored_vms.items():
+                error_msg = vm.get("error", "")
+                details.append(f"{name}: {error_msg or vm}")
+
+            raise RuntimeError(
+                "One or more VMs entered ERROR state during minimega launch: "
+                + "; ".join(details)
+            )
 
         # If there is a control_net, tap it
         if self.control_net:
