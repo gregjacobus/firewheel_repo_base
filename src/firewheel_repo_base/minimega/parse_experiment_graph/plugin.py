@@ -68,6 +68,9 @@ class Plugin(AbstractPlugin):
             data["type"] = "android"
 
             android_config = vme_conf["aux"].get("android_config", {})
+            
+            if vme_conf["vm"].get("image"):
+                data["image"] = vme_conf["vm"]["image"]
 
             android_key_map = {
                 "android-sdk": "android_sdk",
