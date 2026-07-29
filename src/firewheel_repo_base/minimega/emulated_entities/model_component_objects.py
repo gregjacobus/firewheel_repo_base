@@ -279,7 +279,7 @@ class MinimegaEmulatedVM:
         config["vm"]["vga_model"] = self.vm["vga"]
 
     def _generate_vm_resource_handler_communication_config(self, config, minimega_type):
-        """Create the configuration used by the VM Resource Handler to communicate
+        """Create the configuration used by the :ref:`vm-resource-handler` to communicate
         with the VM.
 
         Args:
@@ -330,17 +330,18 @@ class MinimegaEmulatedVM:
                 "require_root": adb_options.get("require_root", True),
             }
 
-            # Optional pre-launch hint. The plugin should overwrite this after
-            # minimega launch using actual android_serial from vm info.
+            # Optional pre-launch hint. This will be overwritten after
+            # minimega launch's the VM using the actual `android_serial``.
             if adb_options.get("adb_serial"):
                 adb_config["adb_serial"] = adb_options["adb_serial"]
 
-            # Optional requested/expected console port. The plugin should overwrite
-            # this after minimega launch using actual android_console_port.
+            # Optional requested/hinted console port. This will be overwritten after
+            # minimega launch's the VM using the actual ``android_console_port``.
             if android_console_port is not None:
                 adb_config["android_console_port"] = android_console_port
 
-            # Optional; normally unknown until after minimega launch.
+            # Optional; This is typically `android_console_port` + 1 but is
+            # normally unknown/unset until after minimega launch.
             if "android_adb_port" in adb_options:
                 adb_config["android_adb_port"] = adb_options["android_adb_port"]
 
@@ -351,13 +352,15 @@ class MinimegaEmulatedVM:
 
     def _generate_vm_resource_handler_process_config(self, config):
         """
-        Create a configuration for launching a VM Resource Handler process for each VM.
+        Create a configuration for launching a :ref:`vm-resource-handler` process
+        for each VM. This method assumes that FIREWHEEL has been installed in the same
+        location on all :ref:`cluster-compute-nodes`.
 
         Args:
             config (dict): The configuration for the VM.
 
         Returns:
-            dict: The configuration to launch a new VM Resource Handler process,
+            dict: The configuration to launch a new a new :ref:`vm-resource-handler` process,
             or None if no handler should be launched.
         """
         try:
@@ -539,7 +542,7 @@ class MinimegaEmulatedVM:
         except AttributeError:
             config["tags"] = {}
 
-        if "qga_config" in config["aux"] or "adb_config" in config["aux"]:
+        if config["aux"].get("qga_config") or config["aux"].get("adb_config"):
             self._generate_vm_resource_handler_process_config(config)
 
         return config
