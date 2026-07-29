@@ -138,11 +138,12 @@ class MinimegaEmulatedVM:
         Args:
             config (dict): The configuration for the VM.
 
+        Returns:
+            list: A list of drives for the VM.
+
         Raises:
             RuntimeError: If a required configuration key is missing from an interface.
 
-        Returns:
-            list: A list of drives for the VM.
         """
         config_list = []
 
@@ -322,7 +323,7 @@ class MinimegaEmulatedVM:
                 android_options.get("android-console-base-port"),
             )
 
-            if android_console_port in (0, "0", ""):
+            if android_console_port in {0, "0", ""}:
                 android_console_port = None
 
             adb_config = {
@@ -450,11 +451,11 @@ class MinimegaEmulatedVM:
         """Generate a minimega VM config based on this
         :py:class:`Vertex <firewheel.control.experiment_graph.Vertex>`.
 
-        Raises:
-            KeyError: Every VM must define an architecture.
-
         Returns:
             dict: The minimega configuration dictionary with all required information.
+
+        Raises:
+            KeyError: Every VM must define an architecture.
         """
 
         config = {}

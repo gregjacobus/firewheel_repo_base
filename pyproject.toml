@@ -132,6 +132,7 @@ ignore = [
     "docstring-extraneous-exception",   # Has lots of false positives currently
     "try-except-in-loop",
     "manual-list-comprehension",
+    "too-many-statements-in-try-clause",
 ]
 preview = true
 # Allow fix for all enabled rules (when `--fix`) is provided.

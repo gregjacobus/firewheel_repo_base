@@ -32,12 +32,12 @@ class Plugin(AbstractPlugin):
             vme_conf (dict): The generated minimega configuration dictionary created by
                 :ref:`minimega.emulated_entities_mc`.
 
+        Returns:
+            dict: The newly created endpoint in the discovery graph.
+
         Raises:
             RuntimeError: If minimega tags are used and a tag name conflicts with
                 a required configuration key.
-
-        Returns:
-            dict: The newly created endpoint in the discovery graph.
         """
         data = {}
         data["architecture"] = vme_conf["vm"]["architecture"]
@@ -209,6 +209,11 @@ class Plugin(AbstractPlugin):
         """
         Update Android VM Resource Handler ADB config using actual minimega launch info.
 
+        Args:
+            process_config (dict): The complete configuration for starting an ADB-based VM
+                Resource Handler.
+            core_vms (dict): The list of VMs started in the experiment.
+
         Raises:
             RuntimeError: If minimega did not report required Android ADB fields.
             ValueError: If minimega reported malformed port values.
@@ -225,7 +230,7 @@ class Plugin(AbstractPlugin):
 
         def require_field(field):
             value = mm_vm.get(field)
-            if value in (None, "", "N/A"):
+            if value in {None, "", "N/A"}:
                 raise RuntimeError(
                     f"Unable to update Android ADB config for {vm_name}: "
                     f"minimega did not report required field {field!r}. "
@@ -244,7 +249,7 @@ class Plugin(AbstractPlugin):
                 ) from exc
 
         def optional_port(value):
-            if value in (None, "", "N/A"):
+            if value in {None, "", "N/A"}:
                 return None
             try:
                 return int(value)
@@ -321,6 +326,9 @@ class Plugin(AbstractPlugin):
         #. Have minimega read the output to launch the VMs.
         #. Finish setting up the control network (if any exists).
         #. Launch a :ref:`vm-resource-handler` for each VM using minimega to start the process.
+
+        Raises:
+            RuntimeError: If one or more VMs entered the ``ERROR`` state during minimega launch
         """
         self.discovery_api = discoveryAPI()
         switch_names = set()
