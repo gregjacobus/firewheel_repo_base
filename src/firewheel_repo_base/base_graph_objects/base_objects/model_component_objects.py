@@ -965,7 +965,7 @@ class VMEndpoint:
 
         Returns:
             base_objects.FileTransferScheduleEntry: The newly created schedule entry.
-        """  # noqa: E501,W505
+        """  # ruff: ignore[line-too-long, doc-line-too-long]
         transfer_vm_resource = FileTransferScheduleEntry(
             location, interval, start_time, destination
         )
@@ -996,7 +996,7 @@ class VMEndpoint:
 
         Returns:
             base_objects.FileTransferScheduleEntry: The newly created schedule entry.
-        """  # noqa: E501,W505
+        """  # ruff: ignore[line-too-long, doc-line-too-long]
         # An interval of None indicates that no looping should happen
         # and therefore the file only gets pulled once
         transfer_vm_resource = FileTransferScheduleEntry(
@@ -1391,7 +1391,7 @@ class VMEndpoint:
             interface["mac"] = mac
 
         edge = Edge(self, switch)
-        edge.dst_ip = "0.0.0.0"  # noqa: S104
+        edge.dst_ip = "0.0.0.0"  # ruff: ignore[hardcoded-bind-all-interfaces]
 
         return (interface, edge)
 
@@ -1631,7 +1631,7 @@ class FileTransferScheduleEntry(ScheduleEntry):
                 files will be written to ``<logging.root_dir>/transfers/``. See
                 :py:meth:`_transfer_data <firewheel.vm_resource_manager.vm_resource_handler.VMResourceHandler._transfer_data>`
                 for more details.
-        """  # noqa: E501,W505
+        """  # ruff: ignore[line-too-long, doc-line-too-long]
         super().__init__(start_time)
         self.add_file_transfer(in_vm_location, interval, out_host_destination)
 

@@ -27,7 +27,7 @@ class QosTest(object):
         """
         self.parse_type = parse_type
         self.ips = ips
-        self.status_file = "/tmp/status"  # noqa: S108
+        self.status_file = "/tmp/status"  # ruff: ignore[hardcoded-temp-file]
 
     def linux_ping(self, ip):
         """

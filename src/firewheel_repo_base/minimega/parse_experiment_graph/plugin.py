@@ -68,7 +68,7 @@ class Plugin(AbstractPlugin):
             data["type"] = "android"
 
             android_config = vme_conf["aux"].get("android_config", {})
-            
+
             if vme_conf["vm"].get("image"):
                 data["image"] = vme_conf["vm"]["image"]
 
@@ -257,7 +257,9 @@ class Plugin(AbstractPlugin):
                 return None
 
         requested_serial = process_config.get("adb_serial")
-        requested_console_port = optional_port(process_config.get("android_console_port"))
+        requested_console_port = optional_port(
+            process_config.get("android_console_port")
+        )
         requested_adb_port = optional_port(process_config.get("android_adb_port"))
 
         actual_serial = require_field("android_serial")
@@ -439,11 +441,9 @@ class Plugin(AbstractPlugin):
                 break
 
         assert all_vms_launched
-        
+
         errored_vms = {
-            name: vm
-            for name, vm in core_vms.items()
-            if vm.get("state") == "ERROR"
+            name: vm for name, vm in core_vms.items() if vm.get("state") == "ERROR"
         }
 
         if errored_vms:

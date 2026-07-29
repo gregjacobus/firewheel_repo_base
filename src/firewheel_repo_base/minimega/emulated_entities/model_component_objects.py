@@ -484,20 +484,18 @@ class MinimegaEmulatedVM:
             self.log.critical("VM %s must define an architecture.", self.name)
             raise
         config["vm"]["name"] = self.name
-        
+
         if is_android:
             config["vm"]["image"] = self.vm.get("image", "")
             config["aux"]["disks"] = []
         else:
             config["vm"]["image"] = self.vm["image"]
-    
 
         if "initial_power_state" in self.vm:
             config["aux"]["power_state"] = self.vm["initial_power_state"]
         else:
             config["aux"]["power_state"] = "running"
 
-        
         self._generate_nic_configs(config)
         if not is_android:
             self._generate_bios_config(config)
@@ -505,7 +503,7 @@ class MinimegaEmulatedVM:
             self._generate_vga_config(config)
         else:
             config["vm"]["vga_model"] = self.vm.get("vga", "")
-    
+
         self._generate_vcpu_config(config)
         self._generate_mem_config(config)
         self._generate_qemu_append_str(config)
