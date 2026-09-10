@@ -81,7 +81,6 @@ class Plugin(AbstractPlugin):
                 "android-no-window": "android_no_window",
                 "android-console-base-port": "android_console_base_port",
                 "android-extra-args": "android_extra_args",
-                "android-require-kvm": "android_require_kvm",
                 "android-writable-system": "android_writable_system",
             }
 
